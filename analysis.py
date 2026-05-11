@@ -1,3 +1,25 @@
+import os
+import urllib.request
+import zipfile
+
+# NLTK 3.9+ 在「import nltk」时会立刻加载 stem/wordnet，此时若磁盘上还没有 wordnet 会直接 LookupError，
+# 因此必须在 import nltk 之前把语料放到 nltk_data（不能用 nltk.download，那时还导不进 nltk）。
+def _ensure_nltk_wordnet():
+    nltk_data = os.path.join(os.path.expanduser('~'), 'nltk_data')
+    corpora = os.path.join(nltk_data, 'corpora')
+    wordnet_dir = os.path.join(corpora, 'wordnet')
+    if os.path.isdir(wordnet_dir) and os.listdir(wordnet_dir):
+        return
+    os.makedirs(corpora, exist_ok=True)
+    url = 'https://raw.githubusercontent.com/nltk/nltk_data/gh-pages/packages/corpora/wordnet.zip'
+    zip_path = os.path.join(corpora, 'wordnet.zip')
+    urllib.request.urlretrieve(url, zip_path)
+    with zipfile.ZipFile(zip_path, 'r') as zf:
+        zf.extractall(corpora)
+
+
+_ensure_nltk_wordnet()
+
 import streamlit as st
 import pandas as pd
 # Missing scikit-learn in Python environment can cause ModuleNotFoundError: No module named 'sklearn'
@@ -7,14 +29,11 @@ from sklearn.decomposition import TruncatedSVD
 import nltk
 import numpy as np
 
-# 云端无本地 NLTK 数据时需自动下载；word_tokenize / 部分依赖会用到 wordnet
-# punkt / punkt_tab：分句分词；wordnet：避免 corpora/wordnet LookupError
-_nltk_packages = [
+# punkt / punkt_tab：分句分词（在成功 import nltk 之后再下载即可）
+for data_path, download_name in [
     ('tokenizers/punkt', 'punkt'),
     ('tokenizers/punkt_tab/english', 'punkt_tab'),
-    ('corpora/wordnet', 'wordnet'),
-]
-for data_path, download_name in _nltk_packages:
+]:
     try:
         nltk.data.find(data_path)
     except LookupError:
