@@ -7,15 +7,18 @@ from sklearn.decomposition import TruncatedSVD
 import nltk
 import numpy as np
 
-# Ensure punkt tokenizer is available, including punkt_tab path used by some nltk versions
-# 如果出现 LookupError: Resource 'punkt_tab' not found， 需要下载 punkt/punkt_tab
-# resolve with: nltk.download('punkt'); nltk.download('punkt_tab')
-for data_name in ['tokenizers/punkt', 'tokenizers/punkt_tab/english']:
+# 云端无本地 NLTK 数据时需自动下载；word_tokenize / 部分依赖会用到 wordnet
+# punkt / punkt_tab：分句分词；wordnet：避免 corpora/wordnet LookupError
+_nltk_packages = [
+    ('tokenizers/punkt', 'punkt'),
+    ('tokenizers/punkt_tab/english', 'punkt_tab'),
+    ('corpora/wordnet', 'wordnet'),
+]
+for data_path, download_name in _nltk_packages:
     try:
-        nltk.data.find(data_name)
+        nltk.data.find(data_path)
     except LookupError:
-        download_key = 'punkt_tab' if 'punkt_tab' in data_name else 'punkt'
-        nltk.download(download_key)
+        nltk.download(download_name, quiet=True)
 
 st.set_page_config(page_title='语义分析综合测试平台', layout='wide')
 st.title('语义分析综合测试平台')
